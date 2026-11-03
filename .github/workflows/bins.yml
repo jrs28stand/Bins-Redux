@@ -1,0 +1,26 @@
+name: Bin reminder
+
+on:
+  schedule:
+    # 18:23 UTC: 18:23 in winter and 19:23 in summer, UK time.
+    # GitHub can delay scheduled runs, and off-peak minutes help.
+    - cron: "23 18 * * *"
+  # Adds a "Run workflow" button. Manual runs send a test alert.
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  remind:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      # actions/checkout v4.4.0, pinned to its exact commit
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - name: Check bins
+        env:
+          BINS_UPRN: ${{ secrets.BINS_UPRN }}
+          NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
+          MODE: ${{ github.event_name == 'workflow_dispatch' && '--test' || '' }}
+        run: python3 bins.py $MODE
