@@ -4,7 +4,7 @@ on:
   schedule:
     # 18:23 UTC: 18:23 in winter and 19:23 in summer, UK time.
     # GitHub can delay scheduled runs, and off-peak minutes help.
-    - cron: "23 18 * * *"
+    - cron: "45 18 * * *"
   # Adds a "Run workflow" button. Manual runs send a test alert.
   workflow_dispatch:
 
