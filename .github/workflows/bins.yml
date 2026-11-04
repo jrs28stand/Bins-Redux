@@ -2,9 +2,11 @@ name: Bin reminder
 
 on:
   schedule:
-    # 18:23 UTC: 18:23 in winter and 19:23 in summer, UK time.
-    # GitHub can delay scheduled runs, and off-peak minutes help.
+    # Times are UTC, so an hour later in UK summer time. GitHub can delay runs.
+    # Evening: 18:45 in winter, 19:45 in summer. Alerts for tomorrow's bins.
     - cron: "45 18 * * *"
+    # Morning: 05:38 in winter, 06:38 in summer. Alerts for today's bins.
+    - cron: "38 5 * * *"
   # Adds a "Run workflow" button. Manual runs send a test alert.
   workflow_dispatch:
 
