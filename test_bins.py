@@ -170,8 +170,15 @@ class EndToEnd(unittest.TestCase):
         self.assertEqual(headers["Title"], title)
         self.assertEqual(body.decode(), "Rubbish, Food waste and WeeklyTextiles")
 
-    def test_morning_alert_when_bins_due_today(self):
-        self.assert_alert_at(datetime(2026, 11, 6, 5, 40), "Bins today")
+    def test_morning_alert_on_the_day_before(self):
+        self.assert_alert_at(datetime(2026, 11, 5, 7, 38), "Bins tomorrow")
+
+    def test_morning_run_delayed_six_hours_still_means_tomorrow(self):
+        self.assert_alert_at(datetime(2026, 11, 5, 13, 38), "Bins tomorrow")
+
+    def test_nothing_sent_on_collection_morning(self):
+        bins.run(UPRN, "my-topic", now=datetime(2026, 11, 6, 7, 38))
+        self.assertEqual(self.alerts(), [])
 
     def test_late_evening_run_before_midnight_still_means_tomorrow(self):
         self.assert_alert_at(datetime(2026, 11, 5, 23, 41), "Bins tomorrow")
@@ -179,11 +186,8 @@ class EndToEnd(unittest.TestCase):
     def test_evening_run_delayed_past_midnight_means_today(self):
         self.assert_alert_at(datetime(2026, 11, 6, 0, 30), "Bins today")
 
-    def test_morning_run_delayed_past_noon_means_tomorrow(self):
-        self.assert_alert_at(datetime(2026, 11, 5, 12, 0), "Bins tomorrow")
-
-    def test_silent_in_morning_when_nothing_due_today(self):
-        bins.run(UPRN, "my-topic", now=datetime(2026, 11, 4, 5, 40))
+    def test_silent_in_morning_when_nothing_due_tomorrow(self):
+        bins.run(UPRN, "my-topic", now=datetime(2026, 11, 3, 7, 38))
         self.assertEqual(self.alerts(), [])
 
     def test_test_mode_always_alerts(self):

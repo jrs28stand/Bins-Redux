@@ -36,10 +36,9 @@ NETWORK_ERRORS = (OSError, http.client.HTTPException)  # includes URLError and t
 # leaves room for fortnightly rounds and Christmas changes.
 MAX_DAYS_TO_NEXT_COLLECTION = 21
 
-# Runs before this UK hour report today's bins; later runs report tomorrow's.
-# Going by the actual time keeps the alert correct if GitHub starts a run late,
-# including an evening run that slips past midnight.
-MORNING_ENDS_AT_HOUR = 12
+# Both daily runs report tomorrow's bins. GitHub can start a run hours late, so
+# a run in the early hours is treated as last evening's and reports today's.
+EARLY_HOURS_END_AT = 5
 
 # The page's section names, shown here in the order used in alerts. Any new
 # section the council adds is still picked up, using its own name.
@@ -238,7 +237,7 @@ def run(uprn, topic, test=False, now=None):
         print("Test alert sent.")
         return
 
-    if now.hour < MORNING_ENDS_AT_HOUR:
+    if now.hour < EARLY_HOURS_END_AT:
         day, word = today, "today"
     else:
         day, word = today + timedelta(days=1), "tomorrow"
