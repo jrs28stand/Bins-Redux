@@ -157,8 +157,22 @@ class EndToEnd(unittest.TestCase):
         (_, path, headers, body), = self.alerts()
         self.assertEqual(path, "/my-topic")
         self.assertEqual(headers["Title"], "Bins tomorrow")
-        self.assertEqual(body.decode(), "Rubbish, Food waste and WeeklyTextiles")
+        self.assertEqual(
+            body.decode(),
+            "Rubbish, Food waste and WeeklyTextiles\nThen: Recycling on Fri 13 Nov",
+        )
         self.assert_uprn_never_sent_to_ntfy()
+
+    def test_no_then_line_when_nothing_later_is_listed(self):
+        LocalServer.page = section("Refuse", "Friday, 6 November 2026")
+        bins.run(UPRN, "my-topic", now=datetime(2026, 11, 5, 19, 0))
+        (_, _, _, body), = self.alerts()
+        self.assertEqual(body.decode(), "Rubbish")
+
+    def test_then_line_skips_collection_being_alerted(self):
+        bins.run(UPRN, "my-topic", now=datetime(2026, 11, 4, 19, 0))
+        (_, _, _, body), = self.alerts()
+        self.assertEqual(body.decode(), "Food waste\nThen: Rubbish, Food waste and WeeklyTextiles on Fri 6 Nov")
 
     def test_silent_when_nothing_due(self):
         bins.run(UPRN, "my-topic", now=datetime(2026, 11, 3, 19, 0))
@@ -168,7 +182,7 @@ class EndToEnd(unittest.TestCase):
         bins.run(UPRN, "my-topic", now=now)
         (_, _, headers, body), = self.alerts()
         self.assertEqual(headers["Title"], title)
-        self.assertEqual(body.decode(), "Rubbish, Food waste and WeeklyTextiles")
+        self.assertEqual(body.decode().split("\n")[0], "Rubbish, Food waste and WeeklyTextiles")
 
     def test_morning_alert_on_the_day_before(self):
         self.assert_alert_at(datetime(2026, 11, 5, 7, 38), "Bins tomorrow")

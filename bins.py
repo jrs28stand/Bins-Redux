@@ -244,8 +244,13 @@ def run(uprn, topic, test=False, now=None):
 
     due = bins_on(upcoming, day)
     if due:
-        send_alert(topic, f"Bins {word}", _join(due))
-        print(f"Alert sent for {word}:", _join(due))
+        message = _join(due)
+        later = [c.when for c in upcoming if c.when > day]
+        if later:
+            after = min(later)
+            message += f"\nThen: {_join(bins_on(upcoming, after))} on {_pretty(after)}"
+        send_alert(topic, f"Bins {word}", message)
+        print(f"Alert sent for {word}:", message.replace("\n", " / "))
     else:
         print(f"Nothing due {word}.")
 
