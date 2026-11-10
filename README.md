@@ -2,9 +2,10 @@
 
 Sends a phone alert the evening before a Basingstoke and Deane collection. It uses only Python's standard library and has no third-party packages.
 
-- **Normal run:** each evening at about 18:23 in winter and 19:23 in summer, it alerts you only if something is due tomorrow.
+- **Morning and evening runs:** scheduled for 07:38 and 18:45 in winter, and 08:38 and 19:45 in summer. Each alerts you only if something is due tomorrow, so you normally get two reminders the day before. Each alert also names the following collection, for example "Then: Rubbish and Food waste on Wed 18 Nov".
+- **Late runs:** GitHub can start scheduled runs hours late. A run between midnight and 05:00 UK time counts as the previous evening's, so it reports today's bins.
 - **Manual run:** it prints the dates found and sends a test alert.
-- **Problem alert:** a high-priority alert if the site is unreachable or blocked, or if the dates look wrong. Running on a schedule, this repeats each evening until fixed.
+- **Problem alert:** a high-priority alert if the site is unreachable or blocked, or if the dates look wrong. This repeats on each scheduled run until fixed.
 
 ## Setup
 

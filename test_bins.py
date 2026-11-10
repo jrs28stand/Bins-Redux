@@ -7,7 +7,7 @@ expects. It is not a capture of the real page.
 import os
 import threading
 import unittest
-from datetime import date
+from datetime import date, datetime
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from unittest import mock
 
@@ -147,25 +147,65 @@ class EndToEnd(unittest.TestCase):
             self.assertNotIn(UPRN, path + str(headers) + body.decode())
 
     def test_sends_uprn_to_council_as_cookie_only(self):
-        bins.run(UPRN, "my-topic", today=date(2026, 11, 5))
+        bins.run(UPRN, "my-topic", now=datetime(2026, 11, 5, 19, 0))
         get = [r for r in LocalServer.requests if r[0] == "GET"][0]
         self.assertIn(f"WhenAreMyBinsCollected={UPRN}", get[2]["Cookie"])
         self.assertNotIn(UPRN, get[1])
 
     def test_alert_when_bins_due_tomorrow(self):
-        bins.run(UPRN, "my-topic", today=date(2026, 11, 5))
+        bins.run(UPRN, "my-topic", now=datetime(2026, 11, 5, 19, 0))
         (_, path, headers, body), = self.alerts()
         self.assertEqual(path, "/my-topic")
         self.assertEqual(headers["Title"], "Bins tomorrow")
-        self.assertEqual(body.decode(), "Rubbish, Food waste and WeeklyTextiles")
+        self.assertEqual(
+            body.decode(),
+            "Rubbish, Food waste and WeeklyTextiles\nThen: Recycling on Fri 13 Nov",
+        )
         self.assert_uprn_never_sent_to_ntfy()
 
+    def test_no_then_line_when_nothing_later_is_listed(self):
+        LocalServer.page = section("Refuse", "Friday, 6 November 2026")
+        bins.run(UPRN, "my-topic", now=datetime(2026, 11, 5, 19, 0))
+        (_, _, _, body), = self.alerts()
+        self.assertEqual(body.decode(), "Rubbish")
+
+    def test_then_line_skips_collection_being_alerted(self):
+        bins.run(UPRN, "my-topic", now=datetime(2026, 11, 4, 19, 0))
+        (_, _, _, body), = self.alerts()
+        self.assertEqual(body.decode(), "Food waste\nThen: Rubbish, Food waste and WeeklyTextiles on Fri 6 Nov")
+
     def test_silent_when_nothing_due(self):
-        bins.run(UPRN, "my-topic", today=date(2026, 11, 3))
+        bins.run(UPRN, "my-topic", now=datetime(2026, 11, 3, 19, 0))
+        self.assertEqual(self.alerts(), [])
+
+    def assert_alert_at(self, now, title):
+        bins.run(UPRN, "my-topic", now=now)
+        (_, _, headers, body), = self.alerts()
+        self.assertEqual(headers["Title"], title)
+        self.assertEqual(body.decode().split("\n")[0], "Rubbish, Food waste and WeeklyTextiles")
+
+    def test_morning_alert_on_the_day_before(self):
+        self.assert_alert_at(datetime(2026, 11, 5, 7, 38), "Bins tomorrow")
+
+    def test_morning_run_delayed_six_hours_still_means_tomorrow(self):
+        self.assert_alert_at(datetime(2026, 11, 5, 13, 38), "Bins tomorrow")
+
+    def test_nothing_sent_on_collection_morning(self):
+        bins.run(UPRN, "my-topic", now=datetime(2026, 11, 6, 7, 38))
+        self.assertEqual(self.alerts(), [])
+
+    def test_late_evening_run_before_midnight_still_means_tomorrow(self):
+        self.assert_alert_at(datetime(2026, 11, 5, 23, 41), "Bins tomorrow")
+
+    def test_evening_run_delayed_past_midnight_means_today(self):
+        self.assert_alert_at(datetime(2026, 11, 6, 0, 30), "Bins today")
+
+    def test_silent_in_morning_when_nothing_due_tomorrow(self):
+        bins.run(UPRN, "my-topic", now=datetime(2026, 11, 3, 7, 38))
         self.assertEqual(self.alerts(), [])
 
     def test_test_mode_always_alerts(self):
-        bins.run(UPRN, "my-topic", test=True, today=date(2026, 11, 3))
+        bins.run(UPRN, "my-topic", test=True, now=datetime(2026, 11, 3, 19, 0))
         (_, _, headers, body), = self.alerts()
         self.assertEqual(headers["Title"], "Bin alert test")
         self.assertIn("Food waste on Thu 5 Nov", body.decode())

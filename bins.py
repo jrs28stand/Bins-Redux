@@ -36,6 +36,10 @@ NETWORK_ERRORS = (OSError, http.client.HTTPException)  # includes URLError and t
 # leaves room for fortnightly rounds and Christmas changes.
 MAX_DAYS_TO_NEXT_COLLECTION = 21
 
+# Both daily runs report tomorrow's bins. GitHub can start a run hours late, so
+# a run in the early hours is treated as last evening's and reports today's.
+EARLY_HOURS_END_AT = 5
+
 # The page's section names, shown here in the order used in alerts. Any new
 # section the council adds is still picked up, using its own name.
 LABELS = {
@@ -216,8 +220,9 @@ def check_upcoming(collections, today):
     return upcoming
 
 
-def run(uprn, topic, test=False, today=None):
-    today = today or datetime.now(LONDON).date()
+def run(uprn, topic, test=False, now=None):
+    now = now or datetime.now(LONDON)
+    today = now.date()
     upcoming = check_upcoming(parse_collections(fetch_page(uprn)), today)
 
     if test:
@@ -232,12 +237,22 @@ def run(uprn, topic, test=False, today=None):
         print("Test alert sent.")
         return
 
-    due = bins_on(upcoming, today + timedelta(days=1))
-    if due:
-        send_alert(topic, "Bins tomorrow", _join(due))
-        print("Alert sent:", _join(due))
+    if now.hour < EARLY_HOURS_END_AT:
+        day, word = today, "today"
     else:
-        print("Nothing due tomorrow.")
+        day, word = today + timedelta(days=1), "tomorrow"
+
+    due = bins_on(upcoming, day)
+    if due:
+        message = _join(due)
+        later = [c.when for c in upcoming if c.when > day]
+        if later:
+            after = min(later)
+            message += f"\nThen: {_join(bins_on(upcoming, after))} on {_pretty(after)}"
+        send_alert(topic, f"Bins {word}", message)
+        print(f"Alert sent for {word}:", message.replace("\n", " / "))
+    else:
+        print(f"Nothing due {word}.")
 
 
 def main():
