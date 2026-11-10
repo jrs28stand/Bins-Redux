@@ -19,8 +19,8 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
-      # actions/checkout v4.4.0, pinned to its exact commit
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      # actions/checkout v6.1.0, pinned to its exact commit
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
       - name: Check bins
         env:
           BINS_UPRN: ${{ secrets.BINS_UPRN }}
